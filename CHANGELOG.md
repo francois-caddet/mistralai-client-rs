@@ -1,3 +1,13 @@
+## [](https://github.com/ivangabriele/mistralai-client-rs/compare/v0.12.0...v) (2024-08-21)
+
+### ⚠ BREAKING CHANGES
+
+* **client:** `v1::model_list::ModelListData` struct has been updated.
+
+### Bug Fixes
+
+* **client:** remove the `Content-Type` from the headers of the reqwest builders. ([#14](https://github.com/ivangabriele/mistralai-client-rs/issues/14)) ([9bfbf2e](https://github.com/ivangabriele/mistralai-client-rs/commit/9bfbf2e9dc7b48103ac56923fb8b3ac9a5e2d9cf)), closes [#13](https://github.com/ivangabriele/mistralai-client-rs/issues/13)
+* **client:** update ModelListData struct following API changes ([2114916](https://github.com/ivangabriele/mistralai-client-rs/commit/2114916941e1ff5aa242290df5f092c0d4954afc))
 ## [0.12.0](https://github.com/ivangabriele/mistralai-client-rs/compare/v0.11.0...v) (2024-07-24)
 
 ### Features
