@@ -384,7 +384,6 @@ impl Client {
         let request_builder = request
             .bearer_auth(&self.api_key)
             .header("Accept", "application/json")
-            .header("Content-Type", "application/json")
             .header("User-Agent", user_agent);
 
         request_builder
@@ -399,7 +398,6 @@ impl Client {
         let request_builder = request
             .bearer_auth(&self.api_key)
             .header("Accept", "application/json")
-            .header("Content-Type", "application/json")
             .header("User-Agent", user_agent);
 
         request_builder
@@ -414,7 +412,6 @@ impl Client {
         let request_builder = request
             .bearer_auth(&self.api_key)
             .header("Accept", "text/event-stream")
-            .header("Content-Type", "application/json")
             .header("User-Agent", user_agent);
 
         request_builder
