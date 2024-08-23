@@ -8,7 +8,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::v1::{chat, agent, chat_stream, constants, embedding, error, model_list, tool, utils};
+use crate::v1::{agent, chat, chat_stream, constants, embedding, error, model_list, tool, utils};
 
 #[derive(Debug)]
 pub struct Client {

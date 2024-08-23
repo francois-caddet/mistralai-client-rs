@@ -46,7 +46,8 @@ async fn main() {
         Box::new(GetCityTemperatureFunction),
     );
 
-    let agid = std::env::var("MISTRAL_API_AGENT").expect("Please export MISTRAL_API_AGENT with the agent id you want to use");
+    let agid = std::env::var("MISTRAL_API_AGENT")
+        .expect("Please export MISTRAL_API_AGENT with the agent id you want to use");
     let messages = vec![AgentMessage {
         role: AgentMessageRole::User,
         content: "What's the temperature in Paris?".to_string(),

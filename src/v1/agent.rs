@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::v1::{common, constants, tool, chat::{HasChoices, ChatResponseChoice}};
+use crate::v1::{
+    chat::{ChatResponseChoice, HasChoices},
+    common, constants, tool,
+};
 
 // -----------------------------------------------------------------------------
 // Definitions
@@ -126,7 +129,7 @@ impl AgentParams {
 #[derive(Debug, Serialize)]
 pub struct AgentRequest {
     pub messages: Vec<AgentMessage>,
-    #[serde(rename="agent_id")]
+    #[serde(rename = "agent_id")]
     pub id: String,
 
     #[serde(flatten, skip_serializing_if = "Option::is_none")]

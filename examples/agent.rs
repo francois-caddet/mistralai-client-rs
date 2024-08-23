@@ -7,7 +7,8 @@ fn main() {
     // This example suppose you have set the `MISTRAL_API_KEY` environment variable.
     let client = Client::new(None, None, None, None).unwrap();
 
-    let agid = std::env::var("MISTRAL_API_AGENT").expect("Please export MISTRAL_API_AGENT with the agent id you want to use");
+    let agid = std::env::var("MISTRAL_API_AGENT")
+        .expect("Please export MISTRAL_API_AGENT with the agent id you want to use");
     let messages = vec![AgentMessage {
         role: AgentMessageRole::User,
         content: "Just guess the next word: \"Eiffel ...\"?".to_string(),
