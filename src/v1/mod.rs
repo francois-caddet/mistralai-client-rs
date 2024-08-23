@@ -1,4 +1,5 @@
 pub mod chat;
+pub mod agent;
 pub mod chat_stream;
 pub mod client;
 pub mod common;
