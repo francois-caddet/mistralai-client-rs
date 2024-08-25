@@ -11,11 +11,14 @@ fn test_model_constant() {
         Model::OpenMistral7b,
         Model::OpenMixtral8x7b,
         Model::OpenMixtral8x22b,
+        Model::OpenMistralNemo,
         Model::MistralTiny,
         Model::MistralSmallLatest,
         Model::MistralMediumLatest,
         Model::MistralLargeLatest,
+        Model::MistralLarge,
         Model::CodestralLatest,
+        Model::CodestralMamba,
     ];
 
     let client = Client::new(None, None, None, None).unwrap();
