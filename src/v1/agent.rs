@@ -9,39 +9,46 @@ use crate::v1::{
 // Definitions
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct AgentMessage {
-    pub role: AgentMessageRole,
-    pub content: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tool_calls: Option<Vec<tool::ToolCall>>,
+#[serde(tag = "role", rename_all = "lowercase")]
+pub enum AgentMessage {
+    Assistant {
+        content: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        tool_calls: Option<Vec<tool::ToolCall>>,
+        prefix: bool,
+    },
+    User {
+        content: String,
+    },
+    Tool {
+        content: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        name: Option<String>,
+    },
 }
 impl AgentMessage {
     pub fn new_assistant_message(content: &str, tool_calls: Option<Vec<tool::ToolCall>>) -> Self {
-        Self {
-            role: AgentMessageRole::Assistant,
+        Self::Assistant {
             content: content.to_string(),
             tool_calls,
+            prefix: false,
         }
     }
 
     pub fn new_user_message(content: &str) -> Self {
-        Self {
-            role: AgentMessageRole::User,
+        Self::User {
             content: content.to_string(),
-            tool_calls: None,
         }
     }
-}
-
-/// See the [Mistral AI API documentation](https://docs.mistral.ai/capabilities/completion/#chat-messages) for more information.
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
-pub enum AgentMessageRole {
-    #[serde(rename = "assistant")]
-    Assistant,
-    #[serde(rename = "user")]
-    User,
-    #[serde(rename = "tool")]
-    Tool,
+    pub fn new_prefix(content: &str) -> Self {
+        Self::Assistant {
+            content: content.to_string(),
+            tool_calls: None,
+            prefix: true,
+        }
+    }
 }
 
 /// The format that the model must output.

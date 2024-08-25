@@ -1,5 +1,5 @@
 use mistralai_client::v1::{
-    agent::{AgentMessage, AgentMessageRole, AgentParams},
+    agent::{AgentMessage, AgentParams},
     client::Client,
     tool::{Function, Tool, ToolChoice, ToolFunctionParameter, ToolFunctionParameterType},
 };
@@ -47,11 +47,9 @@ fn main() {
 
     let agid = std::env::var("MISTRAL_API_AGENT")
         .expect("Please export MISTRAL_API_AGENT with the agent id you want to use");
-    let messages = vec![AgentMessage {
-        role: AgentMessageRole::User,
-        content: "What's the temperature in Paris?".to_string(),
-        tool_calls: None,
-    }];
+    let messages = vec![AgentMessage::new_user_message(
+        "What's the temperature in Paris?",
+    )];
     let options = AgentParams {
         random_seed: Some(42),
         tool_choice: Some(ToolChoice::Auto),
