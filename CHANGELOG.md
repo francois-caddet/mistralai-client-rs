@@ -1,4 +1,4 @@
-## [](https://github.com/ivangabriele/mistralai-client-rs/compare/v0.13.0...v) (2024-08-27)
+## [0.14.0](https://github.com/ivangabriele/mistralai-client-rs/compare/v0.13.0...v) (2024-08-27)
 
 ### Features
 
