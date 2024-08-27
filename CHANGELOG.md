@@ -1,3 +1,8 @@
+## [](https://github.com/ivangabriele/mistralai-client-rs/compare/v0.13.0...v) (2024-08-27)
+
+### Features
+
+* **constants:** update model constants ([#17](https://github.com/ivangabriele/mistralai-client-rs/issues/17)) ([161b33c](https://github.com/ivangabriele/mistralai-client-rs/commit/161b33c72539a6e982207349942a436df95399b7))
 ## [0.13.0](https://github.com/ivangabriele/mistralai-client-rs/compare/v0.12.0...v) (2024-08-21)
 
 ### ⚠ BREAKING CHANGES
