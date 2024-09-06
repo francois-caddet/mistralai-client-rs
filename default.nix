@@ -14,7 +14,7 @@
   };
 
   name = lib.mkForce "mistralai-client";
-  version = lib.mkForce "0.12.0";
+  version = lib.mkForce "0.14.0";
 
   env = {
     "PKG_CONFIG_PATH" = "${config.deps.openssl.dev}/lib/pkgconfig";
