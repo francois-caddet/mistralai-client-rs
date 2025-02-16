@@ -12,11 +12,9 @@ async fn main() {
     let client = Client::new(None, None, None, None).unwrap();
 
     let model = Model::OpenMistral7b;
-    let messages = vec![ChatMessage {
-        role: ChatMessageRole::User,
-        content: "Tell me a short happy story.".to_string(),
-        tool_calls: None,
-    }];
+    let messages = vec![ChatMessage::new_user_message(
+        "Tell me a short happy story.",
+    )];
     let options = ChatParams {
         temperature: 0.0,
         random_seed: Some(42),
@@ -30,11 +28,10 @@ async fn main() {
     stream_result
         .for_each(|chunk_result| async {
             match chunk_result {
-                Ok(chunks) => chunks.iter().for_each(|chunk| {
-                    print!("{}", chunk.choices[0].delta.content);
+                Ok(chunk) => {
+                    print!("{}", chunk.choices[0].delta.content.as_ref().unwrap());
                     io::stdout().flush().unwrap();
-                    // => "Once upon a time, [...]"
-                }),
+                }
                 Err(error) => {
                     eprintln!("Error processing chunk: {:?}", error)
                 }
@@ -42,4 +39,5 @@ async fn main() {
         })
         .await;
     print!("\n") // To persist the last chunk output.
+                 // => "Once upon a time, [...]"
 }

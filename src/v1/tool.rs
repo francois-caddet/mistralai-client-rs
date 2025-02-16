@@ -1,12 +1,14 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use std::{any::Any, collections::HashMap, fmt::Debug};
+use std::{collections::HashMap, fmt::Debug};
+use thiserror::Error;
 
 // -----------------------------------------------------------------------------
 // Definitions
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct ToolCall {
+    pub id: Option<String>,
     pub function: ToolCallFunction,
 }
 
@@ -129,16 +131,45 @@ pub enum ToolChoice {
     None,
 }
 
+/// The struct returned by last_function_call_results which can be converted
+/// into a toll message response.
+#[derive(Debug)]
+pub struct ToolResult {
+    pub id: Option<String>,
+    pub name: String,
+    pub result: Result<String, CallError>,
+}
+
+#[derive(Debug, Error)]
+pub enum CallError {
+    #[error("Tool does not exist")]
+    NotFound,
+}
+
 // -----------------------------------------------------------------------------
 // Custom
 
 #[async_trait]
-pub trait Function: Send {
-    async fn execute(&self, arguments: String) -> Box<dyn Any + Send>;
+pub trait Function: Send + Sync + Debug {
+    type Args: for<'de> Deserialize<'de>;
+    type Result: Serialize;
+    async fn call(&self, args: Self::Args) -> Self::Result;
 }
 
-impl Debug for dyn Function {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Function()")
+#[async_trait]
+pub trait DynFunction: Debug {
+    async fn execute(&self, args: String) -> String;
+}
+
+#[async_trait]
+impl<A, R, F: Function<Args = A, Result = R>> DynFunction for F
+where
+    A: for<'de> Deserialize<'de>,
+    R: Serialize,
+{
+    async fn execute(&self, args: String) -> String {
+        let args = serde_json::from_str(&args).unwrap();
+        let res = self.call(args).await;
+        serde_json::to_string(&res).unwrap()
     }
 }

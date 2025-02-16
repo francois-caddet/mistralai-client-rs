@@ -10,6 +10,8 @@ pub struct ChatMessage {
     pub role: ChatMessageRole,
     pub content: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_call_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_calls: Option<Vec<tool::ToolCall>>,
 }
 impl ChatMessage {
@@ -17,6 +19,7 @@ impl ChatMessage {
         Self {
             role: ChatMessageRole::Assistant,
             content: content.to_string(),
+            tool_call_id: None,
             tool_calls,
         }
     }
@@ -26,7 +29,35 @@ impl ChatMessage {
             role: ChatMessageRole::User,
             content: content.to_string(),
             tool_calls: None,
+            tool_call_id: None,
         }
+    }
+
+    pub fn new_tool_message(content: &str, id: Option<String>) -> Self {
+        Self {
+            role: ChatMessageRole::Tool,
+            content: content.to_string(),
+            tool_calls: None,
+            tool_call_id: id,
+        }
+    }
+
+    pub fn new_system_message(content: &str) -> Self {
+        Self {
+            role: ChatMessageRole::System,
+            content: content.to_string(),
+            tool_call_id: None,
+            tool_calls: None,
+        }
+    }
+}
+
+use tool::ToolResult;
+impl From<ToolResult> for ChatMessage {
+    fn from(ToolResult { id, name, result }: ToolResult) -> Self {
+        let content =
+            result.unwrap_or_else(|e| format!("Error trying to execute tool `{name}`: {e}"));
+        Self::new_tool_message(&content, id)
     }
 }
 
