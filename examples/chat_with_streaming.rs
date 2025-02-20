@@ -13,8 +13,7 @@ async fn main() {
 
     let model = Model::OpenMistral7b;
     let messages = vec![ChatMessage::new_user_message(
-        // "Tell me a short happy story.",
-        "Donne moi un mot en chinois",
+        "Tell me a short happy story.",
     )];
     let options = ChatParams {
         temperature: 0.0,
