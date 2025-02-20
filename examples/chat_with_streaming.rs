@@ -1,6 +1,6 @@
 use futures::stream::StreamExt;
 use mistralai_client::v1::{
-    chat::{ChatMessage, ChatMessageRole, ChatParams},
+    chat::{ChatMessage, ChatParams},
     client::Client,
     constants::Model,
 };

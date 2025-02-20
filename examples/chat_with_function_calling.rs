@@ -1,11 +1,10 @@
 use mistralai_client::v1::{
-    chat::{ChatMessage, ChatMessageRole, ChatParams},
+    chat::{ChatMessage, ChatParams},
     client::Client,
     constants::Model,
     tool::{Function, Tool, ToolChoice, ToolFunctionParameter, ToolFunctionParameterType},
 };
 use serde::Deserialize;
-use std::any::Any;
 
 #[derive(Debug, Deserialize)]
 struct GetCityTemperatureArguments {

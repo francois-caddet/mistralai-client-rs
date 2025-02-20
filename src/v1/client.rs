@@ -1,4 +1,3 @@
-use futures::future::OptionFuture;
 use futures::stream::{StreamExt, TryStreamExt};
 use futures::Stream;
 use log::debug;
@@ -267,19 +266,19 @@ impl Client {
         let deserialized_stream = response
             .bytes_stream()
             .eventsource()
-                    .filter_map(|message| async {
+            .filter_map(|message| async {
                 let message = message.unwrap();
                 if message.data == "[DONE]" {
                     return None;
                 }
                 Some(
-    from_str::<chat_stream::ChatStreamChunk>(&message.data)
-                    .map_err(|e| {
-                    error::ApiError {
-            message: e.to_string(),
-        }
-                    }))
-                    })
+                    from_str::<chat_stream::ChatStreamChunk>(&message.data).map_err(|e| {
+                        error::ApiError {
+                            message: e.to_string(),
+                        }
+                    }),
+                )
+            })
             .and_then(move |c| async move {
                 self.call_function_if_any_stream(&c).await;
                 Ok(c)

@@ -1,5 +1,5 @@
 use mistralai_client::v1::{
-    chat::{ChatMessage, ChatMessageRole, ChatParams},
+    chat::{ChatMessage, ChatParams},
     client::Client,
     constants::Model,
     tool::{Function, Tool, ToolChoice, ToolFunctionParameter, ToolFunctionParameterType},
