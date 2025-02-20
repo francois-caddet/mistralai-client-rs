@@ -157,7 +157,7 @@ pub trait Function: Send + Sync + Debug {
 }
 
 #[async_trait]
-pub trait DynFunction: Debug {
+pub trait DynFunction: Debug + Send {
     async fn execute(&self, args: String) -> String;
 }
 

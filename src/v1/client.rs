@@ -247,6 +247,8 @@ impl Client {
         impl Stream<Item = Result<chat_stream::ChatStreamChunk, error::ApiError>> + '_,
         error::ApiError,
     > {
+        use eventsource_stream::*;
+        use serde_json::from_str;
         let request = chat::ChatRequest::new(model, messages, true, options);
         let response = self
             .post_stream("/chat/completions", &request)
@@ -264,28 +266,20 @@ impl Client {
 
         let deserialized_stream = response
             .bytes_stream()
-            .map_err(|e| error::ApiError {
-                message: e.to_string(),
-            })
-            .and_then(move |bytes| async move {
-                String::from_utf8(bytes.to_vec())
-                    .map_err(|e| error::ApiError {
-                        message: e.to_string(),
+            .eventsource()
+                    .filter_map(|message| async {
+                let message = message.unwrap();
+                if message.data == "[DONE]" {
+                    return None;
+                }
+                Some(
+    from_str::<chat_stream::ChatStreamChunk>(&message.data)
+                    .map_err(|e| {
+                    error::ApiError {
+            message: e.to_string(),
+        }
+                    }))
                     })
-                    .map(|message| {
-                        let chunks = message
-                            .lines()
-                            .filter_map(|line| {
-                                chat_stream::get_chunk_from_stream_message_line(line)
-                                    .unwrap_or(None)
-                            })
-                            .map(Ok::<chat_stream::ChatStreamChunk, error::ApiError>)
-                            .collect::<Vec<_>>();
-
-                        futures::stream::iter(chunks)
-                    })
-            })
-            .try_flatten()
             .and_then(move |c| async move {
                 self.call_function_if_any_stream(&c).await;
                 Ok(c)
