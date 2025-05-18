@@ -340,14 +340,16 @@ impl Client {
 
     pub fn list_models(&self) -> Result<model_list::ModelListResponse, error::ApiError> {
         let response = self.get_sync("/models")?;
-        let result = response.json::<model_list::ModelListResponse>();
+        let txt  = response.text().unwrap();
+        let result = serde_json::from_str::<model_list::ModelListResponse>(&txt);
         match result {
             Ok(data) => {
                 utils::debug_pretty_json_from_struct("Response Data", &data);
 
                 Ok(data)
             }
-            Err(error) => Err(self.to_api_error(error)),
+            Err(error) =>
+panic!("{txt}"),
         }
     }
 

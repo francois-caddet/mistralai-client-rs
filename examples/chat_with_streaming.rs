@@ -11,7 +11,7 @@ async fn main() {
     // This example suppose you have set the `MISTRAL_API_KEY` environment variable.
     let client = Client::new(None, None, None, None).unwrap();
 
-    let model = Model::OpenMistral7b;
+    let model = Model::Ministral3b;
     let messages = vec![ChatMessage {
         role: ChatMessageRole::User,
         content: "Tell me a short happy story.".to_string(),

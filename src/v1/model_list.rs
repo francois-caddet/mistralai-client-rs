@@ -18,7 +18,7 @@ pub struct ModelListData {
     pub created: u32,
     pub owned_by: String,
     pub root: Option<String>,
-    pub archived: bool,
+    //pub archived: bool,
     pub name: String,
     pub description: String,
     pub capabilities: ModelListDataCapabilies,
@@ -34,4 +34,5 @@ pub struct ModelListDataCapabilies {
     pub completion_fim: bool,
     pub function_calling: bool,
     pub fine_tuning: bool,
+    pub vision: bool,
 }

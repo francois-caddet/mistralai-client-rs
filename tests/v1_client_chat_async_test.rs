@@ -14,7 +14,7 @@ async fn test_client_chat_async() {
 
     let client = Client::new(None, None, None, None).unwrap();
 
-    let model = Model::OpenMistral7b;
+    let model = Model::Ministral3b;
     let messages = vec![ChatMessage::new_user_message(
         "Guess the next word: \"Eiffel ...\"?",
     )];
@@ -29,7 +29,7 @@ async fn test_client_chat_async() {
         .await
         .unwrap();
 
-    expect!(response.model).to_be(Model::OpenMistral7b);
+    expect!(response.model).to_be(Model::Ministral3b);
     expect!(response.object).to_be("chat.completion".to_string());
 
     expect!(response.choices.len()).to_be(1);
@@ -65,7 +65,7 @@ async fn test_client_chat_async_with_function_calling() {
 
     let client = Client::new(None, None, None, None).unwrap();
 
-    let model = Model::MistralSmallLatest;
+    let model = Model::Ministral3b;
     let messages = vec![ChatMessage::new_user_message(
         "What's the current temperature in Paris?",
     )];
@@ -82,7 +82,7 @@ async fn test_client_chat_async_with_function_calling() {
         .await
         .unwrap();
 
-    expect!(response.model).to_be(Model::MistralSmallLatest);
+    expect!(response.model).to_be(Model::Ministral3b);
     expect!(response.object).to_be("chat.completion".to_string());
 
     expect!(response.choices.len()).to_be(1);
