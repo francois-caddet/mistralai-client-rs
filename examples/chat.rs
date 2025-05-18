@@ -1,5 +1,5 @@
 use mistralai_client::v1::{
-    chat::{ChatMessage, ChatMessageRole, ChatParams},
+    chat::{ChatMessage, ChatParams},
     client::Client,
     constants::Model,
 };
@@ -9,11 +9,9 @@ fn main() {
     let client = Client::new(None, None, None, None).unwrap();
 
     let model = Model::OpenMistral7b;
-    let messages = vec![ChatMessage {
-        role: ChatMessageRole::User,
-        content: "Just guess the next word: \"Eiffel ...\"?".to_string(),
-        tool_calls: None,
-    }];
+    let messages = vec![ChatMessage::new_user_message(
+        "Just guess the next word: \"Eiffel ...\"?",
+    )];
     let options = ChatParams {
         temperature: 0.0,
         random_seed: Some(42),

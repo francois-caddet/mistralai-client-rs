@@ -1,9 +1,9 @@
-use futures::stream::StreamExt;
+use futures::stream::{StreamExt, TryStreamExt};
 use futures::Stream;
 use log::debug;
 use reqwest::Error as ReqwestError;
+use serde::{Deserialize, Serialize};
 use std::{
-    any::Any,
     collections::HashMap,
     sync::{Arc, Mutex},
 };
@@ -17,8 +17,8 @@ pub struct Client {
     pub max_retries: u32,
     pub timeout: u32,
 
-    functions: Arc<Mutex<HashMap<String, Box<dyn tool::Function>>>>,
-    last_function_call_result: Arc<Mutex<Option<Box<dyn Any + Send>>>>,
+    functions: Arc<Mutex<HashMap<String, Box<dyn tool::DynFunction>>>>,
+    last_function_call_results: Arc<Mutex<Vec<tool::ToolResult>>>,
 }
 
 impl Client {
@@ -62,7 +62,7 @@ impl Client {
         let timeout = timeout.unwrap_or(120);
 
         let functions: Arc<_> = Arc::new(Mutex::new(HashMap::new()));
-        let last_function_call_result = Arc::new(Mutex::new(None));
+        let last_function_call_results = Arc::new(Mutex::new(vec![]));
 
         Ok(Self {
             api_key,
@@ -71,7 +71,7 @@ impl Client {
             timeout,
 
             functions,
-            last_function_call_result,
+            last_function_call_results,
         })
     }
 
@@ -120,7 +120,7 @@ impl Client {
             Ok(data) => {
                 utils::debug_pretty_json_from_struct("Response Data", &data);
 
-                self.call_function_if_any(data.clone());
+                self.call_function_if_any(&data);
 
                 Ok(data)
             }
@@ -176,7 +176,7 @@ impl Client {
             Ok(data) => {
                 utils::debug_pretty_json_from_struct("Response Data", &data);
 
-                self.call_function_if_any_async(data.clone()).await;
+                self.call_function_if_any_async(&data).await;
 
                 Ok(data)
             }
@@ -243,9 +243,11 @@ impl Client {
         messages: Vec<chat::ChatMessage>,
         options: Option<chat::ChatParams>,
     ) -> Result<
-        impl Stream<Item = Result<Vec<chat_stream::ChatStreamChunk>, error::ApiError>>,
+        impl Stream<Item = Result<chat_stream::ChatStreamChunk, error::ApiError>> + '_,
         error::ApiError,
     > {
+        use eventsource_stream::*;
+        use serde_json::from_str;
         let request = chat::ChatRequest::new(model, messages, true, options);
         let response = self
             .post_stream("/chat/completions", &request)
@@ -261,35 +263,28 @@ impl Client {
             });
         }
 
-        let deserialized_stream = response.bytes_stream().then(|bytes_result| async move {
-            match bytes_result {
-                Ok(bytes) => match String::from_utf8(bytes.to_vec()) {
-                    Ok(message) => {
-                        let chunks = message
-                            .lines()
-                            .filter_map(
-                                |line| match chat_stream::get_chunk_from_stream_message_line(line) {
-                                    Ok(Some(chunks)) => Some(chunks),
-                                    Ok(None) => None,
-                                    Err(_error) => None,
-                                },
-                            )
-                            .flatten()
-                            .collect();
-
-                        Ok(chunks)
-                    }
-                    Err(e) => Err(error::ApiError {
-                        message: e.to_string(),
+        let deserialized_stream = response
+            .bytes_stream()
+            .eventsource()
+            .filter_map(|message| async {
+                let message = message.unwrap();
+                if message.data == "[DONE]" {
+                    return None;
+                }
+                Some(
+                    from_str::<chat_stream::ChatStreamChunk>(&message.data).map_err(|e| {
+                        error::ApiError {
+                            message: e.to_string(),
+                        }
                     }),
-                },
-                Err(e) => Err(error::ApiError {
-                    message: e.to_string(),
-                }),
-            }
-        });
+                )
+            })
+            .and_then(move |c| async move {
+                self.call_function_if_any_stream(&c).await;
+                Ok(c)
+            });
 
-        Ok(deserialized_stream)
+        Ok(deserialized_stream.into_stream())
     }
 
     pub fn embeddings(
@@ -332,10 +327,16 @@ impl Client {
         }
     }
 
-    pub fn get_last_function_call_result(&self) -> Option<Box<dyn Any + Send>> {
-        let mut result_lock = self.last_function_call_result.lock().unwrap();
+    pub fn get_last_function_call_result(&self) -> Option<tool::ToolResult> {
+        let mut result_lock = self.last_function_call_results.lock().unwrap();
 
-        result_lock.take()
+        result_lock.pop()
+    }
+
+    pub fn get_last_function_calls_results(&self) -> Vec<tool::ToolResult> {
+        let mut result_lock = self.last_function_call_results.lock().unwrap();
+
+        std::mem::take(result_lock.as_mut())
     }
 
     pub fn list_models(&self) -> Result<model_list::ModelListResponse, error::ApiError> {
@@ -368,10 +369,15 @@ panic!("{txt}"),
         }
     }
 
-    pub fn register_function(&mut self, name: String, function: Box<dyn tool::Function>) {
+    pub fn register_function<A, R, F>(&mut self, name: &str, function: F)
+    where
+        A: for<'de> Deserialize<'de>,
+        R: Serialize,
+        F: tool::Function<Args = A, Result = R> + 'static,
+    {
         let mut functions = self.functions.lock().unwrap();
 
-        functions.insert(name, function);
+        functions.insert(name.to_string(), Box::new(function));
     }
 
     fn build_request_sync(
@@ -419,63 +425,52 @@ panic!("{txt}"),
         request_builder
     }
 
-    fn call_function_if_any(&self, response: chat::ChatResponse) -> () {
-        let next_result = match response.choices.get(0) {
-            Some(first_choice) => match first_choice.message.tool_calls.to_owned() {
-                Some(tool_calls) => match tool_calls.get(0) {
-                    Some(first_tool_call) => {
-                        let functions = self.functions.lock().unwrap();
-                        match functions.get(&first_tool_call.function.name) {
-                            Some(function) => {
-                                let runtime = tokio::runtime::Runtime::new().unwrap();
-                                let result = runtime.block_on(async {
-                                    function
-                                        .execute(first_tool_call.function.arguments.to_owned())
-                                        .await
-                                });
-
-                                Some(result)
-                            }
-                            None => None,
-                        }
-                    }
-                    None => None,
-                },
-                None => None,
-            },
-            None => None,
-        };
-
-        let mut last_result_lock = self.last_function_call_result.lock().unwrap();
-        *last_result_lock = next_result;
+    fn call_function_if_any(&self, response: &chat::ChatResponse) -> () {
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        runtime.block_on(self.call_function_if_any_async(response))
     }
 
-    async fn call_function_if_any_async(&self, response: chat::ChatResponse) -> () {
-        let next_result = match response.choices.get(0) {
-            Some(first_choice) => match first_choice.message.tool_calls.to_owned() {
-                Some(tool_calls) => match tool_calls.get(0) {
-                    Some(first_tool_call) => {
-                        let functions = self.functions.lock().unwrap();
-                        match functions.get(&first_tool_call.function.name) {
-                            Some(function) => {
-                                let result = function
-                                    .execute(first_tool_call.function.arguments.to_owned())
-                                    .await;
-
-                                Some(result)
-                            }
-                            None => None,
-                        }
-                    }
-                    None => None,
-                },
-                None => None,
-            },
-            None => None,
+    async fn call_function_if_any_async(&self, response: &chat::ChatResponse) {
+        let Some(choice) = response.choices.get(0) else {
+            return;
         };
+        let Some(ref calls) = choice.message.tool_calls else {
+            return;
+        };
+        self.call_functions(&calls).await;
+    }
 
-        let mut last_result_lock = self.last_function_call_result.lock().unwrap();
-        *last_result_lock = next_result;
+    async fn call_function_if_any_stream(&self, response: &chat_stream::ChatStreamChunk) {
+        let Some(choice) = response.choices.get(0) else {
+            return;
+        };
+        let Some(ref calls) = choice.delta.tool_calls else {
+            return;
+        };
+        self.call_functions(&calls).await;
+    }
+
+    async fn call_functions(&self, calls: &[tool::ToolCall]) {
+        let functions = self.functions.lock().unwrap();
+        let results = calls.iter().map(|call| async {
+            if let Some(function) = functions.get(&call.function.name) {
+                let res = function.execute(call.function.arguments.to_owned()).await;
+                tool::ToolResult {
+                    id: call.id.clone(),
+                    name: call.function.name.clone(),
+                    result: Ok(res),
+                }
+            } else {
+                tool::ToolResult {
+                    id: call.id.clone(),
+                    name: call.function.name.clone(),
+                    result: Err(tool::CallError::NotFound),
+                }
+            }
+        });
+        let mut results = futures::future::join_all(results).await;
+        let mut last_results_lock = self.last_function_call_results.lock().unwrap();
+        last_results_lock.append(&mut results);
     }
 
     fn get_sync(&self, path: &str) -> Result<reqwest::blocking::Response, error::ApiError> {

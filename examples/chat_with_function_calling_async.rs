@@ -1,30 +1,28 @@
 use mistralai_client::v1::{
-    chat::{ChatMessage, ChatMessageRole, ChatParams},
+    chat::{ChatMessage, ChatParams},
     client::Client,
     constants::Model,
     tool::{Function, Tool, ToolChoice, ToolFunctionParameter, ToolFunctionParameterType},
 };
 use serde::Deserialize;
-use std::any::Any;
 
 #[derive(Debug, Deserialize)]
 struct GetCityTemperatureArguments {
     city: String,
 }
 
+#[derive(Debug)]
 struct GetCityTemperatureFunction;
 #[async_trait::async_trait]
 impl Function for GetCityTemperatureFunction {
-    async fn execute(&self, arguments: String) -> Box<dyn Any + Send> {
-        // Deserialize arguments, perform the logic, and return the result
-        let GetCityTemperatureArguments { city } = serde_json::from_str(&arguments).unwrap();
-
-        let temperature = match city.as_str() {
+    type Args = GetCityTemperatureArguments;
+    type Result = String;
+    async fn call(&self, arguments: Self::Args) -> Self::Result {
+        match arguments.city.as_str() {
             "Paris" => "20°C",
             _ => "Unknown city",
-        };
-
-        Box::new(temperature.to_string())
+        }
+        .to_string()
     }
 }
 
@@ -42,17 +40,12 @@ async fn main() {
 
     // This example suppose you have set the `MISTRAL_API_KEY` environment variable.
     let mut client = Client::new(None, None, None, None).unwrap();
-    client.register_function(
-        "get_city_temperature".to_string(),
-        Box::new(GetCityTemperatureFunction),
-    );
+    client.register_function("get_city_temperature", GetCityTemperatureFunction);
 
-    let model = Model::MistralSmall;
-    let messages = vec![ChatMessage {
-        role: ChatMessageRole::User,
-        content: "What's the temperature in Paris?".to_string(),
-        tool_calls: None,
-    }];
+    let model = Model::Ministral3b;
+    let mut messages = vec![ChatMessage::new_user_message(
+        "What's the temperature in Paris?",
+    )];
     let options = ChatParams {
         temperature: 0.0,
         random_seed: Some(42),
@@ -61,15 +54,17 @@ async fn main() {
         ..Default::default()
     };
 
-    client
+    let res = client
+        .chat_async(model.clone(), messages.clone(), Some(options.clone()))
+        .await
+        .unwrap();
+    messages.push(res.choices[0].message.clone());
+    let temperature = client.get_last_function_call_result().unwrap();
+    messages.push(temperature.into());
+    let res = client
         .chat_async(model, messages, Some(options))
         .await
         .unwrap();
-    let temperature = client
-        .get_last_function_call_result()
-        .unwrap()
-        .downcast::<String>()
-        .unwrap();
-    println!("The temperature in Paris is: {}.", temperature);
+    println!("{}", res.choices[0].message.content);
     // => "The temperature in Paris is: 20°C."
 }
