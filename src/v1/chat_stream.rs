@@ -31,7 +31,7 @@ pub struct ChatStreamChunkChoice {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ChatStreamChunkChoiceDelta {
     pub role: Option<chat::ChatMessageRole>,
-    pub content: Option<String>,
+    pub content: Option<chat::Content>,
     pub tool_calls: Option<Vec<tool::ToolCall>>,
 }
 

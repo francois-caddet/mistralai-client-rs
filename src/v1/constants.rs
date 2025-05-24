@@ -4,15 +4,15 @@ pub const API_URL_BASE: &str = "https://api.mistral.ai/v1";
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub enum Model {
-    #[serde(rename="pixtral-large-2411")]
+    #[serde(rename = "pixtral-large-2411")]
     PixtralLarge,
-    #[serde(rename="pixtral-12b-2409")]
+    #[serde(rename = "pixtral-12b-2409")]
     Pixtral,
-    #[serde(rename="ministral-3b-2410")]
+    #[serde(rename = "ministral-3b-2410")]
     Ministral3b,
-    #[serde(rename="ministral-8b-2410")]
+    #[serde(rename = "ministral-8b-2410")]
     Ministral8b,
-    #[serde(rename="mistral-saba-2502")]
+    #[serde(rename = "mistral-saba-2502")]
     MistralSaba,
     #[serde(rename = "open-mistral-nemo", alias = "open-mistral-nemo-2407")]
     MistralNemo,

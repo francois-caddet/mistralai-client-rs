@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 
 use crate::v1::{common, constants, tool};
@@ -8,26 +10,93 @@ use crate::v1::{common, constants, tool};
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ChatMessage {
     pub role: ChatMessageRole,
-    pub content: String,
+    pub content: Content,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_call_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_calls: Option<Vec<tool::ToolCall>>,
 }
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum Content {
+    Simple(String),
+    Vec(Vec<ContentElm>),
+}
+
+impl fmt::Display for Content {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Content::Simple(text) => write!(f, "{}", text),
+            _ => todo!(),
+        }
+    }
+}
+
+impl From<&str> for Content {
+    fn from(text: &str) -> Self {
+        Content::Simple(text.to_string())
+    }
+}
+
+impl From<Vec<ContentElm>> for Content {
+    fn from(content: Vec<ContentElm>) -> Self {
+        Content::Vec(content)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum ContentElm {
+    ImageUrl {
+        image_url: super::img::Img,
+    },
+    DocumentUrl {
+        #[serde(flatten)]
+        document_url: super::doc::Doc,
+    },
+    Text {
+        text: String,
+    },
+}
+
+impl From<&str> for ContentElm {
+    fn from(text: &str) -> Self {
+        ContentElm::Text {
+            text: text.to_string(),
+        }
+    }
+}
+
+impl From<super::img::Img> for ContentElm {
+    fn from(img: super::img::Img) -> Self {
+        ContentElm::ImageUrl { image_url: img }
+    }
+}
+
+impl From<super::doc::Doc> for ContentElm {
+    fn from(doc: super::doc::Doc) -> Self {
+        ContentElm::DocumentUrl { document_url: doc }
+    }
+}
+
 impl ChatMessage {
-    pub fn new_assistant_message(content: &str, tool_calls: Option<Vec<tool::ToolCall>>) -> Self {
+    pub fn new_assistant_message(
+        content: impl Into<Content>,
+        tool_calls: Option<Vec<tool::ToolCall>>,
+    ) -> Self {
         Self {
             role: ChatMessageRole::Assistant,
-            content: content.to_string(),
+            content: content.into(),
             tool_call_id: None,
             tool_calls,
         }
     }
 
-    pub fn new_user_message(content: &str) -> Self {
+    pub fn new_user_message(content: impl Into<Content>) -> Self {
         Self {
             role: ChatMessageRole::User,
-            content: content.to_string(),
+            content: content.into(),
             tool_calls: None,
             tool_call_id: None,
         }
@@ -36,7 +105,7 @@ impl ChatMessage {
     pub fn new_tool_message(content: &str, id: Option<String>) -> Self {
         Self {
             role: ChatMessageRole::Tool,
-            content: content.to_string(),
+            content: content.into(),
             tool_calls: None,
             tool_call_id: id,
         }
@@ -45,7 +114,7 @@ impl ChatMessage {
     pub fn new_system_message(content: &str) -> Self {
         Self {
             role: ChatMessageRole::System,
-            content: content.to_string(),
+            content: content.into(),
             tool_call_id: None,
             tool_calls: None,
         }

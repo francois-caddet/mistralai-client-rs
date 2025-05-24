@@ -8,7 +8,7 @@ fn main() {
     // This example suppose you have set the `MISTRAL_API_KEY` environment variable.
     let client = Client::new(None, None, None, None).unwrap();
 
-    let model = Model::OpenMistral7b;
+    let model = Model::Ministral3b;
     let messages = vec![ChatMessage::new_user_message(
         "Just guess the next word: \"Eiffel ...\"?",
     )];

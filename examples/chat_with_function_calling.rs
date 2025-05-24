@@ -41,7 +41,7 @@ fn main() {
     let mut client = Client::new(None, None, None, None).unwrap();
     client.register_function("get_city_temperature", GetCityTemperatureFunction);
 
-    let model = Model::MistralSmallLatest;
+    let model = Model::MistralSmall;
     let messages = vec![ChatMessage::new_user_message(
         "What's the temperature in Paris?",
     )];

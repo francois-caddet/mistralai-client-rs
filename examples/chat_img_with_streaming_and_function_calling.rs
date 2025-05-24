@@ -5,6 +5,7 @@ use mistralai_client::v1::{
     client::Client,
     constants::Model,
     error::ApiError,
+    img::Img,
     tool::{Function, Tool, ToolChoice, ToolFunctionParameter, ToolFunctionParameterType},
 };
 use std::io::{self, Write};
@@ -85,14 +86,17 @@ async fn main() {
     let mut client = Client::new(None, None, None, None).unwrap();
     client.register_function("get_city_temperature", GetCityTemperatureFunction);
 
-    let model = Model::MistralSmall;
+    let model = Model::PixtralLarge;
     let mut messages = vec![ChatMessage::new_user_message(
-        "Tell me a short happy story around the current temperature in Paris.",
+        vec![
+        "Checking the current temperature in Paris, describe this photo and say if it could have been taken today.".into(),
+            Img::from_url("https://upload.wikimedia.org/wikipedia/commons/b/b8/Luigi_Loir_-_Paris_sous_la_neige.jpg").into(),
+        ]
     )];
     let options = ChatParams {
         temperature: 0.0,
         random_seed: Some(42),
-        tool_choice: Some(ToolChoice::Auto),
+        tool_choice: Some(ToolChoice::Any),
         tools: Some(tools),
         ..Default::default()
     };
@@ -110,7 +114,14 @@ async fn main() {
     messages.push(res);
     messages.push(client.get_last_function_call_result().unwrap().into());
     let stream_result = client
-        .chat_stream(model, messages, Some(options))
+        .chat_stream(
+            model,
+            messages,
+            Some(ChatParams {
+                tool_choice: Some(ToolChoice::None),
+                ..options
+            }),
+        )
         .await
         .unwrap();
     stream_result

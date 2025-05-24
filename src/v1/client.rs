@@ -341,7 +341,7 @@ impl Client {
 
     pub fn list_models(&self) -> Result<model_list::ModelListResponse, error::ApiError> {
         let response = self.get_sync("/models")?;
-        let txt  = response.text().unwrap();
+        let txt = response.text().unwrap();
         let result = serde_json::from_str::<model_list::ModelListResponse>(&txt);
         match result {
             Ok(data) => {
@@ -349,8 +349,7 @@ impl Client {
 
                 Ok(data)
             }
-            Err(error) =>
-panic!("{txt}"),
+            Err(error) => panic!("{txt}"),
         }
     }
 
@@ -481,6 +480,9 @@ panic!("{txt}"),
         let request = self.build_request_sync(reqwest_client.get(url));
 
         let result = request.send();
+        if let Err(e) = &result {
+            log::error!("{:?}", e);
+        }
         match result {
             Ok(response) => {
                 if response.status().is_success() {
@@ -546,6 +548,9 @@ panic!("{txt}"),
         let request = self.build_request_sync(request_builder);
 
         let result = request.send();
+        if let Err(e) = &result {
+            log::error!("{:?}", e);
+        }
         match result {
             Ok(response) => {
                 if response.status().is_success() {
